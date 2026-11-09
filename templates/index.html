@@ -1,0 +1,23 @@
+<!doctype html><html lang="en" data-theme="light"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Lab Web-OS</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<!-- Third-party libraries (CDN). Host locally for an offline lab. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@13.1.0/dist/handsontable.full.min.css">
+</head><body>
+<div id="desktop"><div id="icons"></div><div id="banner" hidden></div></div>
+<div id="start-menu"></div>
+<div id="taskbar">
+  <button id="start-btn" aria-label="Start menu">Start</button>
+  <div id="tasks"></div>
+  <div id="tray"><div id="clock"></div><small id="date"></small></div>
+</div>
+<script>window.LAB = { admin: {{ 'true' if current_user.is_admin else 'false' }}, user: {{ current_user.username|tojson }}, theme: {{ current_user.theme|tojson }} };</script>
+<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/handsontable@13.1.0/dist/handsontable.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hyperformula@2.6.2/dist/hyperformula.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+<script src="{{ url_for('static', filename='js/desktop.js') }}"></script>
+<script src="{{ url_for('static', filename='js/apps.js') }}"></script>
+</body></html>

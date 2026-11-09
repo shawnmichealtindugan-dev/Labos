@@ -1,0 +1,21 @@
+<!doctype html><html lang="en" data-theme="light"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign in · Lab Web-OS</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"></head>
+<body style="overflow:auto"><div class="login">
+  <section class="login-art">
+    <div class="tiles" aria-hidden="true">
+      <span class="tile" style="--c:#3b6cf5"></span><span class="tile" style="--c:#1f9d6b"></span>
+      <span class="tile" style="--c:#7a5af8"></span><span class="tile" style="--c:#e0912f"></span>
+    </div>
+    <h2>Your lab, in any browser.</h2>
+    <p>Write documents, build spreadsheets, and compile code from any workstation. Your files follow you.</p>
+  </section>
+  <section class="login-form"><form method="post">
+    <h1>Sign in</h1><p>Use the account your lab administrator gave you.</p>
+    {% if error %}<div class="err" role="alert">{{ error }}</div>{% endif %}
+    <label for="u">Username</label><input id="u" name="username" autocomplete="username" autofocus required>
+    <label for="p">Password</label><input id="p" name="password" type="password" autocomplete="current-password" required>
+    <button class="primary">Sign in</button>
+  </form></section>
+</div></body></html>

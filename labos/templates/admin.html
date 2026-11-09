@@ -1,0 +1,80 @@
+<!doctype html><html lang="en" data-theme="{{ current_user.theme }}"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin · Lab Web-OS</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"></head>
+<body class="admin" style="overflow:auto">
+<header><h1>Laboratory management</h1><a href="/"><button>Back to desktop</button></a><a href="/logout"><button>Sign out</button></a></header>
+<main>
+  <div class="tabs" role="tablist">
+    <button class="tab on" data-p="stats">Overview</button><button class="tab" data-p="users">Users</button>
+    <button class="tab" data-p="files">Files &amp; assignments</button><button class="tab" data-p="ann">Announcements</button>
+  </div>
+
+  <section class="panel on" id="stats">
+    <div class="stats" id="cards"></div>
+    <h3>Recent activity</h3><table class="flist" id="logs"></table>
+  </section>
+
+  <section class="panel" id="users">
+    <div class="inline"><input id="nu" placeholder="Username"><input id="nn" placeholder="Full name"><input id="np" placeholder="Password" type="password">
+      <select id="nr"><option>student</option><option>admin</option></select><button class="primary" id="addu">Add user</button></div>
+    <table class="flist" id="utable"></table>
+  </section>
+
+  <section class="panel" id="files">
+    <div class="inline"><input id="an" placeholder="Assignment file name (e.g. lab1.py)"><input id="ac" placeholder="Starter content" style="flex:1">
+      <button class="primary" id="adda">Publish to all students</button></div>
+    <table class="flist" id="ftable"></table>
+  </section>
+
+  <section class="panel" id="ann">
+    <div class="inline"><input id="am" placeholder="Message shown on every desktop" style="flex:1"><button class="primary" id="adda2">Post</button></div>
+    <table class="flist" id="atable"></table>
+  </section>
+</main>
+<script>
+const $ = s => document.querySelector(s), esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function api(url, method='GET', body){
+  const r = await fetch(url,{method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
+  const d = await r.json().catch(()=>({})); if(!r.ok){ alert(d.error||r.statusText); throw new Error(d.error); } return d; }
+
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  document.querySelectorAll('.tab,.panel').forEach(x => x.classList.remove('on'));
+  t.classList.add('on'); $('#'+t.dataset.p).classList.add('on'); load[t.dataset.p](); });
+
+const load = {
+  async stats(){ const s = await api('/api/admin/stats');
+    const bar = (l,v)=>`<div class="stat">${l}<b>${v}%</b><div class="bar"><i style="width:${v}%"></i></div></div>`;
+    $('#cards').innerHTML = `<div class="stat">Active sessions<b>${s.active_sessions}</b></div><div class="stat">Accounts<b>${s.users}</b></div>
+      <div class="stat">Files<b>${s.files}</b></div>${bar('CPU (simulated)',s.cpu)}${bar('Memory (simulated)',s.memory)}${bar('Disk (simulated)',s.disk)}`;
+    $('#logs').innerHTML = '<tr><th>Time (UTC)</th><th>User</th><th>Action</th><th>Detail</th></tr>' +
+      s.logs.map(l=>`<tr><td>${l.ts}</td><td>${esc(l.user)}</td><td>${esc(l.action)}</td><td class="muted">${esc(l.detail)}</td></tr>`).join(''); },
+  async users(){ const u = await api('/api/admin/users');
+    $('#utable').innerHTML = '<tr><th>User</th><th>Name</th><th>Role</th><th>Status</th><th></th></tr>' + u.map(x=>`<tr>
+      <td>${esc(x.username)}</td><td>${esc(x.full_name)}</td><td>${x.role}</td>
+      <td><span class="badge ${x.active?'on':'off'}">${x.active?'Active':'Disabled'}</span></td>
+      <td><button onclick="editU(${x.id},'${esc(x.full_name)}')">Edit</button>
+      <button onclick="toggleU(${x.id},${!x.active})">${x.active?'Disable':'Enable'}</button>
+      <button onclick="resetU(${x.id})">Reset password</button>
+      <button class="danger" onclick="delU(${x.id})">Delete</button></td></tr>`).join(''); },
+  async files(){ const f = await api('/api/admin/files');
+    $('#ftable').innerHTML = '<tr><th>Name</th><th>Owner</th><th>Size</th><th>Shared</th><th></th></tr>' + f.map(x=>`<tr>
+      <td>${esc(x.name)}</td><td>${esc(x.owner)}</td><td class="muted">${x.size} B</td><td>${x.shared?'Yes':'No'}</td>
+      <td><button onclick="share(${x.id})">${x.shared?'Unshare':'Share with all'}</button>
+      <button class="danger" onclick="delF(${x.id})">Delete</button></td></tr>`).join(''); },
+  async ann(){ const a = await api('/api/admin/announcements');
+    $('#atable').innerHTML = a.map(x=>`<tr><td>${esc(x.message)}</td><td><button class="danger" onclick="delA(${x.id})">Remove</button></td></tr>`).join('') || '<tr><td class="muted">No announcements.</td></tr>'; }
+};
+$('#addu').onclick = async()=>{ await api('/api/admin/users','POST',{username:$('#nu').value,full_name:$('#nn').value,password:$('#np').value,role:$('#nr').value});
+  ['#nu','#nn','#np'].forEach(i=>$(i).value=''); load.users(); };
+window.editU = async(id,n)=>{ const v = prompt('Full name:',n); if(v!==null){ await api('/api/admin/users/'+id,'PUT',{full_name:v}); load.users(); } };
+window.toggleU = async(id,a)=>{ await api('/api/admin/users/'+id,'PUT',{active:a}); load.users(); };
+window.resetU = async id=>{ const p = prompt('New password (6+ chars):'); if(p){ await api('/api/admin/users/'+id,'PUT',{password:p}); alert('Password updated.'); } };
+window.delU = async id=>{ if(confirm('Delete this account and all its files?')){ await api('/api/admin/users/'+id,'DELETE'); load.users(); } };
+window.share = async id=>{ await api('/api/admin/files/'+id+'/share','POST'); load.files(); };
+window.delF = async id=>{ if(confirm('Delete file?')){ await fetch('/api/files/'+id,{method:'DELETE'}); load.files(); } };
+$('#adda').onclick = async()=>{ if(!$('#an').value) return; await api('/api/admin/assignments','POST',{name:$('#an').value,content:$('#ac').value}); $('#an').value=$('#ac').value=''; load.files(); };
+$('#adda2').onclick = async()=>{ if(!$('#am').value) return; await api('/api/admin/announcements','POST',{message:$('#am').value}); $('#am').value=''; load.ann(); };
+window.delA = async id=>{ await api('/api/admin/announcements/'+id,'DELETE'); load.ann(); };
+load.stats(); setInterval(()=>{ if($('#stats').classList.contains('on')) load.stats(); }, 5000);
+</script></body></html>
